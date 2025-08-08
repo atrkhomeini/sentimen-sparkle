@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { UploadCloud, Sparkles, Download } from "lucide-react";
 import heroImage from "@/assets/hero-coffee.jpg";
 import { toast } from "@/hooks/use-toast";
-
+import { PieChart, Pie, Cell } from "recharts";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 const Index = () => {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -17,8 +18,28 @@ const Index = () => {
   const [summary, setSummary] = useState("");
   const [suggestions, setSuggestions] = useState("");
   const [csvData, setCsvData] = useState<string | null>(null);
+  const [sentimentCounts, setSentimentCounts] = useState<{ positive?: number; neutral?: number; negative?: number } | null>(null);
+  const [wordcloudImage, setWordcloudImage] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<Array<Record<string, any>> | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const pieConfig = useMemo(
+    () => ({
+      positive: { label: "Positif", color: "hsl(var(--success))" },
+      neutral: { label: "Netral", color: "hsl(var(--warning))" },
+      negative: { label: "Negatif", color: "hsl(var(--destructive))" },
+    }),
+    []
+  );
+
+  const pieData = useMemo(() => {
+    if (!sentimentCounts) return [] as { name: string; value: number; fill: string }[];
+    return [
+      { name: "positive", value: sentimentCounts.positive || 0, fill: "var(--color-positive)" },
+      { name: "neutral", value: sentimentCounts.neutral || 0, fill: "var(--color-neutral)" },
+      { name: "negative", value: sentimentCounts.negative || 0, fill: "var(--color-negative)" },
+    ];
+  }, [sentimentCounts]);
   const canonical = useMemo(() => (typeof window !== "undefined" ? window.location.href : "https://sentimenkopi.local/"), []);
 
   useEffect(() => {
@@ -79,6 +100,9 @@ const Index = () => {
       setSummary((results.summary || "").toString());
       setSuggestions((results.suggestions || "").toString());
       setCsvData(results.csv_data || null);
+      setWordcloudImage(results.wordcloud_image ? `data:image/png;base64,${results.wordcloud_image}` : null);
+      setSentimentCounts(results.sentiment_counts || null);
+      setPreviewData(Array.isArray(results.preview_data) ? results.preview_data : null);
       setResultsVisible(true);
     } catch (err: any) {
       setError(err?.message || "Gagal memproses permintaan.");
@@ -231,8 +255,8 @@ const Index = () => {
               </form>
 
               {/* Results */}
-              <div className={`${resultsVisible ? 'animate-enter' : 'opacity-60'} space-y-6`}>
-                <div className={`${resultsVisible ? '' : 'hidden'} space-y-6`}>
+              <div className={`${resultsVisible ? 'animate-enter' : 'opacity-60'} space-y-8`}>
+                <div className={`${resultsVisible ? '' : 'hidden'} space-y-8`}>
                   <div className="text-center">
                     <h2 className="text-2xl font-bold">✨ Wawasan Berbasis AI</h2>
                     <p className="text-muted-foreground">Ringkasan dan saran oleh Gemini.</p>
@@ -247,12 +271,75 @@ const Index = () => {
                       <div className="text-sm opacity-90" dangerouslySetInnerHTML={{ __html: suggestions.replace(/\n/g, '<br/>') }} />
                     </article>
                   </div>
-                  <div className="text-center">
-                    <Button type="button" onClick={handleDownload} disabled={!csvData} className="inline-flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Unduh CSV Hasil Analisis
-                    </Button>
-                  </div>
+
+                  <section className="space-y-6">
+                    <div className="text-center">
+                      <h2 className="text-2xl font-bold">📊 Visualisasi Data</h2>
+                      <p className="text-muted-foreground">Proporsi sentimen & word cloud.</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6 items-start">
+                      <article className="p-6 rounded-lg border border-border bg-card/50">
+                        <h3 className="text-lg font-semibold text-brand mb-3">Proporsi Sentimen</h3>
+                        {pieData.length > 0 ? (
+                          <ChartContainer config={pieConfig} className="h-64">
+                            <PieChart>
+                              <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={48} outerRadius={80} strokeWidth={2} />
+                              <ChartTooltip content={<ChartTooltipContent hideIndicator />} />
+                              <ChartLegend content={<ChartLegendContent />} />
+                            </PieChart>
+                          </ChartContainer>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Tidak ada data sentimen.</p>
+                        )}
+                      </article>
+
+                      <article className="p-6 rounded-lg border border-border bg-card/50">
+                        <h3 className="text-lg font-semibold text-brand mb-3">Word Cloud</h3>
+                        {wordcloudImage ? (
+                          <img src={wordcloudImage} alt="Word cloud ulasan pelanggan" className="w-full rounded-md border border-border bg-background" loading="lazy" />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Word cloud belum tersedia.</p>
+                        )}
+                      </article>
+                    </div>
+                  </section>
+
+                  <section className="space-y-4">
+                    <div className="text-center">
+                      <h2 className="text-2xl font-bold">📋 Pratinjau Hasil</h2>
+                    </div>
+                    <div className="overflow-x-auto rounded-lg border border-border bg-card/50">
+                      {previewData && previewData.length > 0 ? (
+                        <table className="min-w-full text-sm">
+                          <thead>
+                            <tr>
+                              {Object.keys(previewData[0]).map((key) => (
+                                <th key={key} className="px-4 py-2 text-left font-semibold text-muted-foreground border-b border-border/60">{key}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previewData.map((row, i) => (
+                              <tr key={i} className="hover:bg-muted/30">
+                                {Object.keys(previewData[0]).map((key) => (
+                                  <td key={key} className="px-4 py-2 border-b border-border/60">{String(row[key] ?? "")}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="p-6 text-sm text-muted-foreground">Tidak ada pratinjau data.</div>
+                      )}
+                    </div>
+
+                    <div className="text-center">
+                      <Button type="button" onClick={handleDownload} disabled={!csvData} className="inline-flex items-center gap-2">
+                        <Download className="h-4 w-4" />
+                        Unduh CSV Hasil Analisis
+                      </Button>
+                    </div>
+                  </section>
                 </div>
 
                 {!resultsVisible && (

@@ -52,6 +52,12 @@ All colors MUST be HSL.
     --brand: 54 99% 54%; /* vivid yellow */
     --brand-foreground: 222.2 47.4% 11.2%; /* deep text on yellow */
 
+    /* Semantic status tokens */
+    --success: 142 71% 45%;
+    --success-foreground: 210 40% 98%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 222.2 47.4% 11.2%;
+
     /* Motion & effects */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -92,6 +98,12 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Semantic status tokens */
+    --success: 142 71% 45%;
+    --success-foreground: 210 40% 98%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 222.2 47.4% 11.2%;
   }
 }
 
