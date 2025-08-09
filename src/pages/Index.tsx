@@ -8,6 +8,7 @@ import heroImage from "@/assets/hero-coffee.jpg";
 import { toast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell } from "recharts";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { buildUrl } from "@/lib/api";
 const Index = () => {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -80,7 +81,7 @@ const Index = () => {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/process_and_suggest?text_column=${encodeURIComponent(textColumn)}`,
+        buildUrl("/process_and_suggest", { text_column: textColumn }),
         {
           method: "POST",
           body: formData,
